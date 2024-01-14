@@ -25,6 +25,10 @@ types-python-dateutil = "^2.8.19.20240106"
 spacy = "^3.7.2"
 pdftotext = "^2.2.2"
 pdfminer-six = "^20231228"
+spacy-llm = "^0.6.4"
+tiktoken = "^0.5.2"
+rdflib = "^7.0.0"
+stringcase = "^1.2.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.12.1"
