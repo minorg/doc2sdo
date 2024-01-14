@@ -7,11 +7,11 @@ from rdflib import Literal
 
 import spacy
 import tiktoken
-from doc2sdo.models.llm_metadata import LlmMetadata
-from doc2sdo.models.organization import Organization
-from doc2sdo.models.person import Person
-from doc2sdo.models.place import Place
-from doc2sdo.models.thing import Thing
+from doc2sdo.llm_metadata import LlmMetadata
+from doc2sdo.types.organization import Organization
+from doc2sdo.types.person import Person
+from doc2sdo.types.place import Place
+from doc2sdo.types.thing import Thing
 from nltk import word_tokenize  # type: ignore  # noqa: PGH003
 from nltk.corpus import stopwords  # type: ignore  # noqa: PGH003
 from nltk.tokenize.treebank import TreebankWordDetokenizer  # type: ignore  # noqa: PGH003
@@ -54,7 +54,6 @@ class NamedEntityRecognizer:
                 tiktoken.encoding_for_model(model.tiktoken_name)
             )
         else:
-            self.__cache_dir_path = None
             self.__ent_labels_to_types = {
                 "FAC": Place,
                 "GPE": Place,

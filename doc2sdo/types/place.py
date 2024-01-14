@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from rdflib import SDO, URIRef
 
-from doc2sdo.models.thing import Thing
+from doc2sdo.types.thing import Thing
 
 
 class Place(Thing):

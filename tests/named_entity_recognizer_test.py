@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from doc2sdo.models.llm_metadata import LlmMetadata, GPT_3_5
+from doc2sdo.llm_metadata import LlmMetadata, GPT_3_5
 from doc2sdo.named_entity_recognizer import NamedEntityRecognizer
 
 
