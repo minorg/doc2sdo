@@ -1,39 +1,41 @@
-import json
 import logging
 import re
 import unicodedata
 from copy import copy
-from hashlib import sha256
-from pathlib import Path
-from typing import Dict, FrozenSet, Iterable, List, Optional, Sequence, Set, Tuple
+from collections.abc import Iterable, Sequence
+from rdflib import Literal
 
 import spacy
 import tiktoken
-from nltk import word_tokenize  # type: ignore
-from nltk.corpus import stopwords  # type: ignore
-from nltk.tokenize.treebank import TreebankWordDetokenizer  # type: ignore
-
-from paradicms_nlp.models.llm_metadata import LlmMetadata
-from paradicms_nlp.models.named_entity import NamedEntity
-from paradicms_nlp.models.named_entity_type import NamedEntityType
-from paradicms_nlp.utils.spacy_model_name import SPACY_MODEL_NAME
+from doc2sdo.models.llm_metadata import LlmMetadata
+from doc2sdo.models.organization import Organization
+from doc2sdo.models.person import Person
+from doc2sdo.models.place import Place
+from doc2sdo.models.thing import Thing
+from nltk import word_tokenize  # type: ignore  # noqa: PGH003
+from nltk.corpus import stopwords  # type: ignore  # noqa: PGH003
+from nltk.tokenize.treebank import TreebankWordDetokenizer  # type: ignore  # noqa: PGH003
 
 
 class NamedEntityRecognizer:
-    __STOPWORDS: Set[str] = set(stopwords.words("english"))
     __WHITESPACE_RE = re.compile(r"\s+")
 
-    def __init__(self, *, cache_dir_path: Path, llm: Optional[LlmMetadata] = None):
+    def __init__(
+        self,
+        *,
+        language: str,
+        model: LlmMetadata | str,
+    ):
         self.__detokenizer = TreebankWordDetokenizer()
-        self.__llm = llm
         self.__logger = logging.getLogger(__name__)
-        if llm is not None:
-            self.__cache_dir_path: Optional[Path] = cache_dir_path / llm.spacy_name
+        self.__model = model
+        self.__stopwords = set(stopwords.words(language))
+        if isinstance(model, LlmMetadata):
             self.__ent_labels_to_types = {
-                str(named_entity_type): named_entity_type
-                for named_entity_type in NamedEntityType
+                ent_class.__name__.upper(): ent_class
+                for ent_class in (Organization, Person, Place)
             }
-            self.__ignore_ent_labels: FrozenSet[str] = frozenset()
+            self.__ignore_ent_labels: frozenset[str] = frozenset()
             self.__nlp = spacy.blank("en")
             self.__nlp.add_pipe(
                 "llm",
@@ -44,21 +46,21 @@ class NamedEntityRecognizer:
                         "single_match": True,
                     },
                     "model": {
-                        "@llm_models": llm.spacy_name,
+                        "@llm_models": model.spacy_name,
                     },
                 },
             )
-            self.__tiktoken_encoding: Optional[
-                tiktoken.Encoding
-            ] = tiktoken.encoding_for_model(llm.tiktoken_name)
+            self.__tiktoken_encoding: tiktoken.Encoding | None = (
+                tiktoken.encoding_for_model(model.tiktoken_name)
+            )
         else:
             self.__cache_dir_path = None
             self.__ent_labels_to_types = {
-                "FAC": NamedEntityType.LOCATION,
-                "GPE": NamedEntityType.LOCATION,
-                "LOC": NamedEntityType.LOCATION,
-                "ORG": NamedEntityType.ORGANIZATION,
-                "PERSON": NamedEntityType.PERSON,
+                "FAC": Place,
+                "GPE": Place,
+                "LOC": Place,
+                "ORG": Organization,
+                "PERSON": Person,
             }
             self.__ignore_ent_labels = frozenset(
                 (
@@ -72,35 +74,12 @@ class NamedEntityRecognizer:
                     "TIME",
                 )
             )
-            self.__nlp = spacy.load(SPACY_MODEL_NAME)
+            self.__nlp = spacy.load(model)
             self.__tiktoken_encoding = None
-        self.__unrecognized_ent_labels: Set[str] = set()
-
-    def __cache_named_entities(
-        self,
-        *,
-        named_entities: Tuple[NamedEntity, ...],
-        text: str,
-        text_hash_hexdigest: str,
-    ) -> None:
-        if self.__cache_dir_path is None:
-            return
-
-        cache_dir_path = self.__cache_dir_path / text_hash_hexdigest
-        cache_dir_path.mkdir(exist_ok=True, parents=True)
-
-        with open(cache_dir_path / "text.txt", "w+") as text_file:
-            text_file.write(text)
-
-        with open(cache_dir_path / "named_entities.json", "w+") as json_file:
-            json.dump(
-                [json.loads(named_entity.to_json()) for named_entity in named_entities],  # type: ignore
-                json_file,
-                indent=4,
-            )
+        self.__unrecognized_ent_labels: set[str] = set()
 
     def __chunk_text(self, text: str) -> Iterable[str]:
-        if self.__llm is None:
+        if not isinstance(self.__model, LlmMetadata):
             yield text
             return
 
@@ -111,7 +90,7 @@ class NamedEntityRecognizer:
             return "\n".join(text_chunks_seq)
 
         assert self.__tiktoken_encoding is not None
-        text_chunks: List[str] = []
+        text_chunks: list[str] = []
         yielded_text_len_sum = 0
         while text_split:
             text_chunk = text_split.pop()
@@ -121,7 +100,7 @@ class NamedEntityRecognizer:
                 self.__tiktoken_encoding.encode(text_chunks_joined)
             )
 
-            if text_chunks_token_count > self.__llm.token_limit:
+            if text_chunks_token_count > self.__model.token_limit:
                 text_chunks.pop()
                 assert text_chunks, "single text chunk is larger than the token limit"
 
@@ -141,7 +120,7 @@ class NamedEntityRecognizer:
             text_chunks_token_count = len(
                 self.__tiktoken_encoding.encode(text_chunks_joined)
             )
-            assert text_chunks_token_count <= self.__llm.token_limit
+            assert text_chunks_token_count <= self.__model.token_limit
             self.__logger.info(
                 "text chunk len=%d tokens=%d",
                 len(text_chunks_joined),
@@ -154,40 +133,8 @@ class NamedEntityRecognizer:
         #     text
         # ), f"{yielded_text_len_sum} vs. {len(text)}"
 
-    def __get_cached_named_entities(
-        self, *, text_hash_hexdigest: str
-    ) -> Optional[Tuple[NamedEntity, ...]]:
-        if self.__cache_dir_path is None:
-            return None
-
-        cache_dir_path = self.__cache_dir_path / text_hash_hexdigest
-        if not cache_dir_path.is_dir():
-            self.__logger.debug(
-                "named entities cache directory %s does not exist", cache_dir_path
-            )
-            return None
-
-        with open(cache_dir_path / "named_entities.json") as json_file:
-            return tuple(
-                NamedEntity(**named_entity_json_object)
-                for named_entity_json_object in json.load(json_file)
-            )
-
-    def recognize(self, text: str) -> Iterable[NamedEntity]:
-        text_hash_hexdigest = sha256(text.encode("utf-8")).hexdigest()
-
-        named_entities = self.__get_cached_named_entities(
-            text_hash_hexdigest=text_hash_hexdigest
-        )
-        if named_entities is not None:
-            self.__logger.debug(
-                "read %d named entities from cache for text %s",
-                len(named_entities),
-                text_hash_hexdigest,
-            )
-            return named_entities
-
-        named_entities_dict: Dict[NamedEntityType, Dict[str, NamedEntity]] = {}
+    def recognize(self, text: str) -> Iterable[Thing]:
+        named_entities_dict: dict[type[Thing], dict[str, Thing]] = {}
 
         for text_chunk in self.__chunk_text(text):
             doc = self.__nlp(text_chunk)
@@ -196,20 +143,20 @@ class NamedEntityRecognizer:
                 clean_ent_text = self.__WHITESPACE_RE.sub(" ", ent.text).strip()
                 clean_ent_text = unicodedata.normalize("NFC", clean_ent_text)
                 clean_ent_text = clean_ent_text.replace("\u2010", "-")
-                clean_ent_text_tokens: List[str] = word_tokenize(clean_ent_text)
-                clean_ent_text_tokens_without_stopwords: List[str] = copy(
+                clean_ent_text_tokens: list[str] = word_tokenize(clean_ent_text)
+                clean_ent_text_tokens_without_stopwords: list[str] = copy(
                     clean_ent_text_tokens
                 )
                 while (
                     clean_ent_text_tokens_without_stopwords
                     and clean_ent_text_tokens_without_stopwords[0].lower()
-                    in self.__STOPWORDS
+                    in self.__stopwords
                 ):
                     clean_ent_text_tokens_without_stopwords.pop(0)
                 if clean_ent_text_tokens_without_stopwords and len(
                     clean_ent_text_tokens_without_stopwords
                 ) < len(clean_ent_text_tokens):
-                    clean_ent_text = self.__detokenizer.detokenize(  # type: ignore
+                    clean_ent_text = self.__detokenizer.detokenize(  # type: ignore  # noqa: PGH003
                         clean_ent_text_tokens_without_stopwords
                     )
 
@@ -231,9 +178,10 @@ class NamedEntityRecognizer:
                     named_entity_type, {}
                 ).get(clean_ent_text.lower())
                 if existing_named_entity is not None:
+                    existing_named_entity_text = existing_named_entity.name.value
                     if (
-                        not existing_named_entity.text.islower()
-                        and not existing_named_entity.text.isupper()
+                        not existing_named_entity_text.islower()
+                        and not existing_named_entity_text.isupper()
                     ):
                         # The existing named entity is mixed-case
                         self.__logger.debug(
@@ -246,18 +194,10 @@ class NamedEntityRecognizer:
 
                 named_entities_dict.setdefault(named_entity_type, {})[
                     clean_ent_text.lower()
-                ] = NamedEntity(text=clean_ent_text, type_=named_entity_type)
+                ] = named_entity_type.builder(name=Literal(clean_ent_text)).build()
 
-        named_entities = tuple(
+        return tuple(
             named_entity
             for named_entities_by_text in named_entities_dict.values()
             for named_entity in named_entities_by_text.values()
         )
-
-        self.__cache_named_entities(
-            named_entities=named_entities,
-            text=text,
-            text_hash_hexdigest=text_hash_hexdigest,
-        )
-
-        return named_entities

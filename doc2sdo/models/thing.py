@@ -34,6 +34,12 @@ class Thing(ABC):
         resource.add(SDO.name, name)
         return cls.Builder(resource)
 
+    @property
+    def name(self) -> Literal:
+        name = self.resource.value(SDO.name)
+        assert isinstance(name, Literal)
+        return name
+
     @classmethod
     @abstractmethod
     def rdf_type(cls) -> URIRef:
