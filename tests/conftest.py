@@ -6,7 +6,7 @@ import pytest
 
 @pytest.fixture(scope="session")
 def data_dir_path() -> Path:
-    path_ = Path(__file__).absolute() / "data"
+    path_ = Path(__file__).parent.absolute() / "data"
     assert path_.is_dir()
     return path_
 
