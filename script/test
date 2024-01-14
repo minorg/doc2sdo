@@ -1,0 +1,12 @@
+#!/bin/bash
+
+set -e
+
+cd "$(dirname "$0")/.."
+
+poetry run black --check doc2sdo
+poetry run mypy doc2sdo
+poetry run ruff doc2sdo
+
+mkdir -p test-results
+poetry run pytest --junitxml=test-results/junit.xml
