@@ -1,3 +1,7 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
 [tool.poetry]
 name = "doc2sdo"
 version = "1.0.0"
@@ -6,9 +10,45 @@ authors = ["Minor Gordon <minorg@server.fake>"]
 license = "GPLv3"
 readme = "README.md"
 
-[tool.poetry.dependencies]
-python = "^3.11"
+[tool.mypy]
+python_version = "3.11"
+warn_unused_configs = true
 
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+[[tool.mypy.overrides]]
+module = ["pdftotext"]
+ignore_missing_imports = true
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.12"
+python-dateutil = "^2.8.2"
+types-python-dateutil = "^2.8.19.20240106"
+spacy = "^3.7.2"
+pdftotext = "^2.2.2"
+pdfminer-six = "^20231228"
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.12.1"
+mypy = "^1.8.0"
+pytest = "^7.4.4"
+ruff = "^0.1.13"
+
+
+[tool.ruff]
+ignore = [
+    "ANN101", # missing-type-self
+    "ANN102", # missing-type-cls,
+    "ANN204", # Missing return type annotation for __init__
+    "COM812", # Trailing comma missing
+    "D",      # Missing docstrings
+    "E501",   # Line too long
+    "EM102",  # Exception must not use an f-string literal
+    "ERA001", # Commented-out code
+    "FA",     # Missing from __future__ import annotations
+    "I001",   # Import block is un-sorted or un-formatted
+    "ICN001", # Pandas should be imported as pd
+    "N815",   # Mixed-case variables
+    "TRY003", # Avoid specifying long messages outside the exception class
+]
+select = ["ALL"]
+src = ["doc2sdo"]
+target-version = "py311"
