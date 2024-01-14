@@ -7,6 +7,7 @@ from rdflib import Literal
 
 import spacy
 import tiktoken
+from doc2sdo import defaults
 from doc2sdo.llm_metadata import LlmMetadata
 from doc2sdo.types.organization import Organization
 from doc2sdo.types.person import Person
@@ -23,8 +24,8 @@ class NamedEntityRecognizer:
     def __init__(
         self,
         *,
-        language: str,
-        model: LlmMetadata | str,
+        language: str = defaults.LANGUAGE,
+        model: LlmMetadata | str = defaults.SPACY_MODEL,
     ):
         self.__detokenizer = TreebankWordDetokenizer()
         self.__logger = logging.getLogger(__name__)

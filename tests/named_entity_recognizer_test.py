@@ -1,6 +1,7 @@
 import os
 
 import pytest
+from doc2sdo import defaults
 
 from doc2sdo.llm_metadata import LlmMetadata, GPT_3_5
 from doc2sdo.named_entity_recognizer import NamedEntityRecognizer
@@ -8,7 +9,7 @@ from doc2sdo.named_entity_recognizer import NamedEntityRecognizer
 
 @pytest.mark.parametrize(
     "model",
-    ["en_core_web_md", GPT_3_5],
+    [defaults.SPACY_MODEL, GPT_3_5],
 )
 def test_recognizer(model: LlmMetadata | str, pdf_texts: tuple[str, ...]) -> None:
     if isinstance(model, LlmMetadata) and (
