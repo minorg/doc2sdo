@@ -8,7 +8,7 @@ from doc2sdo.named_entity_recognizer import NamedEntityRecognizer
 
 @pytest.mark.parametrize(
     "model",
-    [("en_core_web_md",), (GPT_3_5,)],
+    ["en_core_web_md", GPT_3_5],
 )
 def test_recognizer(model: LlmMetadata | str, pdf_texts: tuple[str, ...]) -> None:
     if isinstance(model, LlmMetadata) and (
