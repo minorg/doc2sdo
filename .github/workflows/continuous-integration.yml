@@ -8,11 +8,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11.x"
       - name: Install Poetry
-        uses: snok/install-poetry@v5
+        uses: snok/install-poetry@v4
         with:
           virtualenvs-in-project: true
       - name: Install libpoppler
