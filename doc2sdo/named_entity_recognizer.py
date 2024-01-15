@@ -5,6 +5,7 @@ from copy import copy
 from collections.abc import Iterable, Sequence
 from rdflib import Literal
 
+import nltk
 import tiktoken
 from doc2sdo import defaults
 from doc2sdo.llm_spacy_model import LlmSpacyModel
@@ -33,7 +34,11 @@ class NamedEntityRecognizer:
         self.__detokenizer = TreebankWordDetokenizer()
         self.__logger = logging.getLogger(__name__)
         self.__model = spacy_model
-        self.__stopwords = set(stopwords.words(stopword_language))
+        try:
+            self.__stopwords = set(stopwords.words(stopword_language))
+        except LookupError:
+            nltk.download("stopwords")
+            self.__stopwords = set(stopwords.words(stopword_language))
 
         self.__ent_labels_to_types: dict[str, type[_NamedEntity]]
         if isinstance(spacy_model, LlmSpacyModel):
