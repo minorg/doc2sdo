@@ -17,10 +17,14 @@ def doc2sdo(
     spacy_model: SpacyModel = defaults.SPACY_MODEL,
     stopword_language: str = defaults.STOPWORD_LANGUAGE,
 ) -> Iterable[Thing]:
-    # Convert doc to a string as needed and infer doc's URI as needed
-
     document = Document.load(doc, uri=doc_uri)
 
-    yield from NamedEntityRecognizer(
+    creative_work_builder = document.to_creative_work()
+
+    for named_entity in NamedEntityRecognizer(
         spacy_model=spacy_model, stopword_language=stopword_language
-    ).recognize(document.text)
+    ).recognize(document.text):
+        creative_work_builder.add_about(named_entity.uri)
+        yield named_entity
+
+    yield creative_work_builder.build()

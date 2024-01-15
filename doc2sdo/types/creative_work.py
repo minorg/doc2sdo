@@ -7,6 +7,10 @@ from doc2sdo.types.thing import Thing
 
 class CreativeWork(Thing):
     class Builder(Thing.Builder):
+        def add_about(self, about: URIRef) -> CreativeWork.Builder:
+            self._resource.add(SDO.about, about)
+            return self
+
         def add_alternate_name(self, alternate_name: Literal) -> CreativeWork.Builder:
             self._resource.add(SDO.alternateName, alternate_name)
             return self

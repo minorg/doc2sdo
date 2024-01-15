@@ -1,5 +1,6 @@
 from pathlib import Path
 from doc2sdo.doc2sdo import doc2sdo
+from doc2sdo.types.creative_work import CreativeWork
 
 
 def test_doc2sdo(
@@ -9,5 +10,8 @@ def test_doc2sdo(
         things = tuple(doc2sdo(file_path))
         # assert named_entities
         for thing in things:
-            assert thing.name.value
             assert thing.uri
+            if isinstance(thing, CreativeWork):
+                continue
+            assert thing.name is not None
+            assert thing.name.value

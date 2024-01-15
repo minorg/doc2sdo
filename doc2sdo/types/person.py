@@ -12,7 +12,9 @@ class Person(Thing):
 
     @classmethod
     def builder(cls, *, name: Literal) -> Builder:
-        return cls.Builder(rdf_type=SDO.Person, uri=cls._uri_from_name(name))
+        builder = cls.Builder(rdf_type=SDO.Person, uri=cls._uri_from_name(name))
+        builder.set_name(name)
+        return builder
 
     @property
     def name(self) -> Literal:
