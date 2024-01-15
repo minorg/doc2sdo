@@ -14,15 +14,15 @@ def doc2sdo(
     doc: bytes | Path | str | URIRef,
     *,
     doc_uri: URIRef | None = None,
+    nltk_language: str = defaults.NLTK_LANGUAGE,
     spacy_model: SpacyModel = defaults.SPACY_MODEL,
-    stopword_language: str = defaults.STOPWORD_LANGUAGE,
 ) -> Iterable[Thing]:
     document = Document.load(doc, uri=doc_uri)
 
     creative_work_builder = document.to_creative_work()
 
     for named_entity in NamedEntityRecognizer(
-        spacy_model=spacy_model, stopword_language=stopword_language
+        spacy_model=spacy_model, nltk_language=nltk_language
     ).recognize(document.text):
         creative_work_builder.add_about(named_entity.uri)
         yield named_entity

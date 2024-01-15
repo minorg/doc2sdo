@@ -28,17 +28,19 @@ class NamedEntityRecognizer:
     def __init__(
         self,
         *,
+        nltk_language: str = defaults.NLTK_LANGUAGE,
         spacy_model: SpacyModel = defaults.SPACY_MODEL,
-        stopword_language: str = defaults.STOPWORD_LANGUAGE,
     ):
         self.__detokenizer = TreebankWordDetokenizer()
         self.__logger = logging.getLogger(__name__)
-        self.__model = spacy_model
+        self.__nltk_language = nltk_language
+        self.__spacy_model = spacy_model
+
         try:
-            self.__stopwords = set(stopwords.words(stopword_language))
+            self.__stopwords = set(stopwords.words(nltk_language))
         except LookupError:
             nltk.download("stopwords")
-            self.__stopwords = set(stopwords.words(stopword_language))
+            self.__stopwords = set(stopwords.words(nltk_language))
 
         self.__ent_labels_to_types: dict[str, type[_NamedEntity]]
         if isinstance(spacy_model, LlmSpacyModel):
@@ -82,7 +84,7 @@ class NamedEntityRecognizer:
         self.__unrecognized_ent_labels: set[str] = set()
 
     def __chunk_text(self, text: str) -> Iterable[str]:
-        if not isinstance(self.__model, LlmSpacyModel):
+        if not isinstance(self.__spacy_model, LlmSpacyModel):
             yield text
             return
 
@@ -103,7 +105,7 @@ class NamedEntityRecognizer:
                 self.__tiktoken_encoding.encode(text_chunks_joined)
             )
 
-            if text_chunks_token_count > self.__model.token_limit:
+            if text_chunks_token_count > self.__spacy_model.token_limit:
                 text_chunks.pop()
                 assert text_chunks, "single text chunk is larger than the token limit"
 
@@ -123,7 +125,7 @@ class NamedEntityRecognizer:
             text_chunks_token_count = len(
                 self.__tiktoken_encoding.encode(text_chunks_joined)
             )
-            assert text_chunks_token_count <= self.__model.token_limit
+            assert text_chunks_token_count <= self.__spacy_model.token_limit
             self.__logger.info(
                 "text chunk len=%d tokens=%d",
                 len(text_chunks_joined),
@@ -149,7 +151,18 @@ class NamedEntityRecognizer:
                 clean_ent_text = self.__WHITESPACE_RE.sub(" ", ent.text).strip()
                 clean_ent_text = unicodedata.normalize("NFC", clean_ent_text)
                 clean_ent_text = clean_ent_text.replace("\u2010", "-")
-                clean_ent_text_tokens: list[str] = word_tokenize(clean_ent_text)
+
+                clean_ent_text_tokens: list[str]
+                try:
+                    clean_ent_text_tokens = word_tokenize(
+                        clean_ent_text, language=self.__nltk_language
+                    )
+                except LookupError:
+                    nltk.download("punkt")
+                    clean_ent_text_tokens = word_tokenize(
+                        clean_ent_text, language=self.__nltk_language
+                    )
+
                 clean_ent_text_tokens_without_stopwords: list[str] = copy(
                     clean_ent_text_tokens
                 )
