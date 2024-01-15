@@ -2,14 +2,16 @@ name: Continuous Integration
 on:
   push:
     branches:
-      - "!main"
+      - "main"
   workflow_dispatch:
-permissions:
-  checks: write
-  pull-requests: write
 jobs:
-  continuous-integration:
-    name: Build and test
+  continuous-deployment:
+    name: Build, test, and publish
+    environment:
+      name: pypi
+      url: https://pypi.org/p/doc2sdo
+    permissions:
+      id-token: write # IMPORTANT: this permission is mandatory for trusted publishing
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -33,8 +35,7 @@ jobs:
         run: script/bootstrap
       - name: Run tests
         run: script/test
-      - name: Publish unit test results
-        uses: EnricoMi/publish-unit-test-result-action@v2
-        if: always()
-        with:
-          files: test-results/*.xml
+      - name: Build distributions
+        run: poetry build
+      - name: Publish package distributions to PyPI via trusted publishing (set up in PyPI)
+        uses: pypa/gh-action-pypi-publish@release/v1
