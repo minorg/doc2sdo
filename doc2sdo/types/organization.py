@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from rdflib import SDO, URIRef
+from rdflib import SDO, Literal
 
 from doc2sdo.types.thing import Thing
 
@@ -11,5 +11,11 @@ class Organization(Thing):
             return Organization(self._resource)
 
     @classmethod
-    def rdf_type(cls) -> URIRef:
-        return SDO.Organization
+    def builder(cls, *, name: Literal) -> Builder:
+        return cls.Builder(rdf_type=SDO.Organization, uri=cls._uri_from_name(name))
+
+    @property
+    def name(self) -> Literal:
+        name = super().name
+        assert name is not None
+        return name

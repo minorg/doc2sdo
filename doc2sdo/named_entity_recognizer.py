@@ -18,6 +18,9 @@ from nltk.corpus import stopwords  # type: ignore  # noqa: PGH003
 from nltk.tokenize.treebank import TreebankWordDetokenizer  # type: ignore  # noqa: PGH003
 
 
+_NamedEntity = Organization | Person | Place
+
+
 class NamedEntityRecognizer:
     __WHITESPACE_RE = re.compile(r"\s+")
 
@@ -31,9 +34,11 @@ class NamedEntityRecognizer:
         self.__logger = logging.getLogger(__name__)
         self.__model = spacy_model
         self.__stopwords = set(stopwords.words(stopword_language))
+
+        self.__ent_labels_to_types: dict[str, type[_NamedEntity]]
         if isinstance(spacy_model, LlmSpacyModel):
             self.__ent_labels_to_types = {
-                ent_class.__name__.upper(): ent_class
+                ent_class.__name__.upper(): ent_class  # type: ignore  # noqa: PGH003
                 for ent_class in (Organization, Person, Place)
             }
             self.__ignore_ent_labels: frozenset[str] = frozenset()
@@ -127,7 +132,10 @@ class NamedEntityRecognizer:
         # ), f"{yielded_text_len_sum} vs. {len(text)}"
 
     def recognize(self, text: str) -> Iterable[Thing]:
-        named_entities_dict: dict[type[Thing], dict[str, Thing]] = {}
+        named_entities_dict: dict[
+            type[_NamedEntity],
+            dict[str, _NamedEntity],
+        ] = {}
 
         for text_chunk in self.__chunk_text(text):
             doc = self.__nlp(text_chunk)

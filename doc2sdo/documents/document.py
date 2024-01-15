@@ -8,6 +8,8 @@ from urllib.request import urlopen
 
 from rdflib import URIRef
 
+from doc2sdo.types.creative_work import CreativeWork
+
 
 def _hash_uri(source_bytes: bytes) -> URIRef:
     return URIRef("urn:hash::sha256:" + sha256(source_bytes).hexdigest())
@@ -71,6 +73,9 @@ class Document(ABC):
     @abstractmethod
     def text(self) -> str:
         pass
+
+    def to_creative_work(self) -> CreativeWork.Builder:
+        return CreativeWork.builder(uri=self.uri)
 
     @property
     def uri(self) -> URIRef:
