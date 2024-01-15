@@ -83,9 +83,9 @@ class PdfDocument(Document):
     def to_creative_work(self) -> CreativeWork.Builder:
         builder = super().to_creative_work()
 
-        for info in self.__pdfminer_pdf_document.info:  # type: ignore
+        for info in self.__pdfminer_pdf_document.info:  # type: ignore  # noqa: PGH003
             # https://www.oreilly.com/library/view/pdf-explained/9781449321581/ch04.html
-            for key, value in info.items():  # type: ignore
+            for key, value in info.items():  # type: ignore  # noqa: PGH003
                 assert isinstance(key, str)
                 assert isinstance(value, bytes)
                 if key == "Author":

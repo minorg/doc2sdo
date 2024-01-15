@@ -20,7 +20,7 @@ class Document(ABC):
         self.__uri = uri
 
     @classmethod
-    def load(
+    def load(  # noqa: C901, PLR0912
         cls, source: bytes | Path | str | URIRef, *, uri: URIRef | None = None
     ) -> Document:
         from doc2sdo.documents.pdf_document import PdfDocument

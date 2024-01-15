@@ -1,6 +1,5 @@
-from rdflib import Literal, URIRef
+from rdflib import URIRef
 from doc2sdo.documents.document import Document
-from doc2sdo.types.creative_work import CreativeWork
 
 
 class TextDocument(Document):
