@@ -175,7 +175,7 @@ class NamedEntityRecognizer:
                     continue
 
                 existing_named_entity = named_entities_dict.get(
-                    named_entity_type, {}
+                    named_entity_type, {}  # type: ignore  # noqa: PGH003
                 ).get(clean_ent_text.lower())
                 if existing_named_entity is not None:
                     existing_named_entity_text = existing_named_entity.name.value
@@ -192,9 +192,11 @@ class NamedEntityRecognizer:
                         continue
                     # else drop down to replace it with a mixed-case one
 
-                named_entities_dict.setdefault(named_entity_type, {})[
+                named_entities_dict.setdefault(named_entity_type, {})[  # type: ignore  # noqa: PGH003
                     clean_ent_text.lower()
-                ] = named_entity_type.builder(name=Literal(clean_ent_text)).build()
+                ] = named_entity_type.builder(
+                    name=Literal(clean_ent_text)
+                ).build()
 
         return tuple(
             named_entity
