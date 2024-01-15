@@ -42,6 +42,7 @@ class Document(ABC):
             if uri is None:
                 uri = _hash_uri(source_bytes)
         elif isinstance(source, Path):
+            source = source.absolute()
             with Path.open(source, "rb") as source_file:
                 source_bytes = source_file.read()
             if uri is None:
