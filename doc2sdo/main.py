@@ -1,5 +1,4 @@
 import logging
-from pathlib import Path
 import sys
 from typing import Annotated, Optional
 from rdflib import Graph, URIRef
@@ -10,6 +9,17 @@ from doc2sdo import llm_spacy_model
 from doc2sdo.doc2sdo import doc2sdo
 from doc2sdo.llm_spacy_model import LlmSpacyModel
 from doc2sdo.spacy_model import SpacyModel
+
+
+def _get_spacy_model_by_name(name: str) -> SpacyModel:
+    name_upper = name.upper()
+    for attr in dir(llm_spacy_model):
+        value = getattr(llm_spacy_model, attr)
+        if not isinstance(value, LlmSpacyModel):
+            continue
+        if name_upper == attr or name_upper == value.name.upper():
+            return value
+    return SpacyModel(name)
 
 
 def _main(  # noqa: PLR0913
@@ -43,22 +53,13 @@ def _main(  # noqa: PLR0913
     else:
         logging.basicConfig(level=logging.INFO)
 
+    spacy_model_typed: SpacyModel
     if spacy_model is not None:
-        spacy_model_upper = spacy_model.upper()
-        spacy_model_typed = None
-        for attr in dir(llm_spacy_model):
-            value = getattr(llm_spacy_model, attr)
-            if not isinstance(value, LlmSpacyModel):
-                continue
-            if spacy_model_upper == attr or spacy_model_upper == value.name.upper():
-                spacy_model_typed = value
-                break
-        if spacy_model_typed is None:
-            spacy_model_typed = SpacyModel(spacy_model)
+        spacy_model_typed = _get_spacy_model_by_name(spacy_model)
     else:
         spacy_model_typed = defaults.SPACY_MODEL
 
-    doc_typed = doc if doc is not None else sys.stdin.buffer.read()
+    doc_typed: bytes | str = doc if doc is not None else sys.stdin.buffer.read()
 
     union_graph = Graph()
 
