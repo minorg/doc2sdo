@@ -11,7 +11,7 @@ class LlmSpacyModel(SpacyModel):
     tiktoken_name: str
     token_limit: int
 
-    def load(self, *, task: Any) -> Language:  # noqa: ANN401
+    def load(self, *, task: Any) -> Language:  # type: ignore  # noqa: PGH003, ANN401
         result = spacy.blank("en")
         result.add_pipe(
             "llm",
