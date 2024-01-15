@@ -25,7 +25,7 @@ class Document(ABC):
         from doc2sdo.documents.text_document import TextDocument
 
         from pdfminer.pdfdocument import PDFDocument
-        from pdfminer.pdfparser import PDFParser
+        from pdfminer.pdfparser import PDFParser, PDFSyntaxError
 
         if isinstance(source, str):
             if Path(source).is_file():
@@ -64,7 +64,7 @@ class Document(ABC):
                 pdfminer_pdf_document=pdfminer_pdf_document,
                 uri=uri,
             )
-        except:  # noqa: E722
+        except PDFSyntaxError:
             return TextDocument(text=source_bytes.decode("utf-8"), uri=uri)
 
     @property

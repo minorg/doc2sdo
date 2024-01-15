@@ -32,3 +32,15 @@ def pdf_texts(pdf_file_paths: tuple[Path, ...]) -> tuple[str, ...]:
             text: str = "\n\n".join(pdf)  # type: ignore  # noqa: PGH003
             result.append(text)
     return tuple(result)
+
+
+@pytest.fixture(scope="session")
+def text_file_paths(data_dir_path: Path) -> tuple[Path, ...]:
+    pdf_test_data_dir_path = data_dir_path / "text"
+    return tuple(
+        sorted(
+            pdf_test_data_dir_path / file_name
+            for file_name in os.listdir(pdf_test_data_dir_path)
+            if file_name.startswith("test-document-") and file_name.endswith(".txt")
+        )
+    )
