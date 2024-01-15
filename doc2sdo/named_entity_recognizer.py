@@ -5,10 +5,10 @@ from copy import copy
 from collections.abc import Iterable, Sequence
 from rdflib import Literal
 
-import spacy
 import tiktoken
 from doc2sdo import defaults
-from doc2sdo.llm_metadata import LlmMetadata
+from doc2sdo.llm_spacy_model import LlmSpacyModel
+from doc2sdo.spacy_model import SpacyModel
 from doc2sdo.types.organization import Organization
 from doc2sdo.types.person import Person
 from doc2sdo.types.place import Place
@@ -24,35 +24,28 @@ class NamedEntityRecognizer:
     def __init__(
         self,
         *,
-        language: str = defaults.LANGUAGE,
-        model: LlmMetadata | str = defaults.SPACY_MODEL,
+        spacy_model: SpacyModel = defaults.SPACY_MODEL,
+        stopword_language: str = defaults.STOPWORD_LANGUAGE,
     ):
         self.__detokenizer = TreebankWordDetokenizer()
         self.__logger = logging.getLogger(__name__)
-        self.__model = model
-        self.__stopwords = set(stopwords.words(language))
-        if isinstance(model, LlmMetadata):
+        self.__model = spacy_model
+        self.__stopwords = set(stopwords.words(stopword_language))
+        if isinstance(spacy_model, LlmSpacyModel):
             self.__ent_labels_to_types = {
                 ent_class.__name__.upper(): ent_class
                 for ent_class in (Organization, Person, Place)
             }
             self.__ignore_ent_labels: frozenset[str] = frozenset()
-            self.__nlp = spacy.blank("en")
-            self.__nlp.add_pipe(
-                "llm",
-                config={
-                    "task": {
-                        "@llm_tasks": "spacy.NER.v2",
-                        "labels": list(self.__ent_labels_to_types),
-                        "single_match": True,
-                    },
-                    "model": {
-                        "@llm_models": model.spacy_name,
-                    },
-                },
+            self.__nlp = spacy_model.load(
+                task={
+                    "@llm_tasks": "spacy.NER.v2",
+                    "labels": list(self.__ent_labels_to_types),
+                    "single_match": True,
+                }
             )
             self.__tiktoken_encoding: tiktoken.Encoding | None = (
-                tiktoken.encoding_for_model(model.tiktoken_name)
+                tiktoken.encoding_for_model(spacy_model.tiktoken_name)
             )
         else:
             self.__ent_labels_to_types = {
@@ -74,12 +67,12 @@ class NamedEntityRecognizer:
                     "TIME",
                 )
             )
-            self.__nlp = spacy.load(model)
+            self.__nlp = spacy_model.load()
             self.__tiktoken_encoding = None
         self.__unrecognized_ent_labels: set[str] = set()
 
     def __chunk_text(self, text: str) -> Iterable[str]:
-        if not isinstance(self.__model, LlmMetadata):
+        if not isinstance(self.__model, LlmSpacyModel):
             yield text
             return
 

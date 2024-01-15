@@ -6,8 +6,8 @@ from urllib.request import urlopen
 
 from rdflib import URIRef
 from doc2sdo import defaults
-from doc2sdo.llm_metadata import LlmMetadata
 from doc2sdo.named_entity_recognizer import NamedEntityRecognizer
+from doc2sdo.spacy_model import SpacyModel
 
 from doc2sdo.types.thing import Thing
 
@@ -16,8 +16,8 @@ def doc2sdo(
     doc: Path | str | URIRef,
     *,
     doc_uri: URIRef | None = None,
-    language: str = defaults.LANGUAGE,
-    model: LlmMetadata | str = defaults.SPACY_MODEL,
+    spacy_model: SpacyModel = defaults.SPACY_MODEL,
+    stopword_language: str = defaults.STOPWORD_LANGUAGE,
 ) -> Iterable[Thing]:
     # Convert doc to a string as needed and infer doc's URI as needed
 
@@ -45,4 +45,6 @@ def doc2sdo(
                     "urn:hash::sha25:" + sha256(doc_str.encode("utf-8")).hexdigest()
                 )
 
-    yield from NamedEntityRecognizer(language=language, model=model).recognize(doc_str)
+    yield from NamedEntityRecognizer(
+        spacy_model=spacy_model, stopword_language=stopword_language
+    ).recognize(doc_str)
