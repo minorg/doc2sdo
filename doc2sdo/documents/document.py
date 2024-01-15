@@ -6,7 +6,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 from urllib.request import urlopen
 
-from rdflib import URIRef
+from rdflib import Literal, URIRef
 
 from doc2sdo.types.creative_work import CreativeWork
 
@@ -75,7 +75,9 @@ class Document(ABC):
         pass
 
     def to_creative_work(self) -> CreativeWork.Builder:
-        return CreativeWork.builder(uri=self.uri)
+        builder = CreativeWork.builder(uri=self.uri)
+        builder.set_text(Literal(self.text))
+        return builder
 
     @property
     def uri(self) -> URIRef:
