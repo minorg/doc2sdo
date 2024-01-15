@@ -1,6 +1,6 @@
 # doc2sdo
 
-Extract entities from text documents and transform them to schema.org resources.
+Extract entities from PDF and text documents and transform them to [schema.org](https://schema.org) resources in [RDF](https://www.w3.org/RDF/).
 
 ## Installation
 
@@ -10,7 +10,7 @@ Extract entities from text documents and transform them to schema.org resources.
 
 ### From the command line
 
-    doc2sdo path/to/your.pdf
+    doc2sdo path/to/your.pdf >output.ttl
 
 ### From Python
 
